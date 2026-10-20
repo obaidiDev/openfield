@@ -27,4 +27,6 @@ export HIGGSFIELD_PHONECAM_ORIGIN=""
 # silence the baked Amplitude analytics key
 export HIGGSFIELD_AMPLITUDE_API_KEY=""
 
-exec "$BLENDER_BIN"
+# --online-mode lets the Blender Lab "MCP" extension auto-start its socket
+# bridge on localhost:9876, which the `blmcp` server (and Claude Code) use.
+exec "$BLENDER_BIN" --online-mode

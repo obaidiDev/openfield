@@ -95,16 +95,29 @@ delete it to re-login.
    `HIGGSFIELD_MCP_WS_URL` at your own relay — the add-on's outbound
    websocket protocol is a trivial JSON command/result envelope (see
    `bridge_runner.py` in its GPL source), agent side is plain MCP.
-2. **Skip it:** the scene-control half of the add-on is Blender's own
-   upstream MCP server (`blmcp`, by the Blender Authors). Standalone:
+2. **Skip it:** the scene-control half is the official Blender Lab MCP
+   server (`blmcp` — Blender Authors, GPL-3.0). Two pieces:
+
+   - *In Blender:* install the **MCP extension** from
+     <https://www.blender.org/lab/mcp-server/> (drag-and-drop the
+     `mcp-1.0.3.zip` twice, or `blender --command extension install-file
+     -r user_default -e mcp-1.0.3.zip`). It autostarts a socket bridge on
+     `localhost:9876` — but only when **online access is allowed**, so
+     launch Blender with `--online-mode` (`launch_blender.sh` does this).
+   - *On your machine:* an isolated venv with the wheel from this repo
+     (or upstream), then register it with your agent:
 
 ```bash
-pip install "mcp<2" websockets pyyaml      # mcp<2 pin: blmcp targets FastMCP 1.x
-python -m blmcp --transport http --port 8000
+python3 -m venv blmcp-venv
+blmcp-venv/bin/pip install "mcp<2" websockets pyyaml \
+    vendor/blender_mcp-1.0.0-py3-none-any.whl    # mcp<2: blmcp targets FastMCP 1.x
+claude mcp add blender --scope user -- "$PWD/blmcp-venv/bin/python" -m blmcp
 ```
 
-It speaks to Blender's socket bridge on `localhost:9876`; expose your
-ComfyUI as MCP tools beside it and an agent gets the full loop.
+   Claude Code then gets 26 tools (`execute_blender_code`, scene summaries,
+   viewport screenshots…) over stdio; verified end-to-end with Claude Code
+   creating objects in a live Blender. Expose your ComfyUI as MCP tools
+   beside it and an agent gets the full loop.
 
 ## Status & limits
 
