@@ -1,0 +1,107 @@
+# openfield — self-hosted Higgsfield Blender add-on backend  (TOML, stdlib-only)
+# Everything here is safe to edit; the gateway reads it at start.
+
+[server]
+host = "127.0.0.1"
+port = 8745            # gateway + auth + media + results all on one port
+
+[auth]
+# The add-on signs in through RFC 8628 device flow against this origin.
+# Loopback HTTP is allowed only when Blender runs with HIGGSFIELD_ENV=dev.
+auto_approve = true             # accept device logins without the browser dance
+auto_approve_loopback_only = true
+access_ttl_seconds = 3600
+refresh_ttl_seconds = 2592000
+
+[account]
+email = "local@localhost"
+plan_type = "max"               # cosmetic; the add-on accepts plan names openly
+workspaces = [
+  { name = "Local", credits = 999999.0 },
+]
+
+[paths]
+data_dir = "./data"             # sqlite db + uploads + results
+
+[comfy]
+poll_interval = 2.0
+job_timeout = 600
+
+# ===========================================================================
+# Model catalog: what appears in the add-on's pickers.
+#   job_type      unique id used in API paths (keep [a-z0-9_])
+#   type          image | video | 3d     (which tab the model lands in)
+#   backend_type  comfyui | openai_images | local
+#   backend_ref   name of a [backends.*] entry (omit for inline local command)
+#   cost          cosmetic credits number on the Generate button
+#   schema_extra  extra JSON-Schema params merged into the param form
+# ===========================================================================
+
+[[catalog]]
+job_type = "hf_flux_dev"
+display_name = "Flux.1 dev (ComfyUI)"
+type = "image"
+backend_type = "comfyui"
+backend_ref = "comfy-main"
+comfy_workflow = "workflows/flux_dev.json"
+cost = 0
+[catalog.schema_extra.width]
+type = "integer"
+minimum = 256
+maximum = 2048
+default = 1024
+[catalog.schema_extra.height]
+type = "integer"
+minimum = 256
+maximum = 2048
+default = 1024
+
+[[catalog]]
+job_type = "hf_sd3_api"
+display_name = "SD3.5 (OpenAI-compatible)"
+type = "image"
+backend_type = "openai_images"
+backend_ref = "my-provider"
+openai_model = "sd3.5-large"
+cost = 0
+
+[[catalog]]
+job_type = "hf_test_local"
+display_name = "Test local (checkerboard)"
+type = "image"
+backend_type = "local"
+command = "python3 tests/gen_test_image.py"
+cost = 0
+
+[[catalog]]
+job_type = "hf_wan_video"
+display_name = "Wan 2.2 (ComfyUI video)"
+type = "video"
+backend_type = "comfyui"
+backend_ref = "comfy-main"
+comfy_workflow = "workflows/wan_t2v.json"
+cost = 0
+
+[[catalog]]
+job_type = "hf_hunyuan3d"
+display_name = "Hunyuan3D-2 (ComfyUI 3D)"
+type = "3d"
+backend_type = "comfyui"
+backend_ref = "comfy-main"
+comfy_workflow = "workflows/hunyuan3d.json"
+cost = 0
+
+# ===========================================================================
+# Backends: point these at local servers or hosted providers with API keys.
+# api_key may be a literal or "env:VARNAME" to keep secrets out of this file.
+# ===========================================================================
+
+[backends.comfy-main]
+type = "comfyui"
+url = "http://127.0.0.1:8188"      # ComfyUI server
+client_id = "openfield"
+
+[backends.my-provider]
+type = "openai_images"
+base_url = "https://api.example.com/v1"   # or http://127.0.0.1:8000/v1 (vLLM etc.)
+api_key = "env:OPENAI_IMAGE_API_KEY"
